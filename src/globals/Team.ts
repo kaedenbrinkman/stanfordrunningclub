@@ -33,6 +33,15 @@ export const Team: GlobalConfig = {
         'https://docs.google.com/forms/d/e/1FAIpQLSfqAx6QZlH1p14ZFe7uNFYTMaP15KNZ7BCYNd__-1Wid1flQQ/viewform?usp=sf_link',
     },
     {
+      name: 'activeRosterSeason',
+      type: 'text',
+      required: true,
+      defaultValue: '2025–26',
+      admin: {
+        description: 'Season label for the public roster on /team (must match member season values).',
+      },
+    },
+    {
       name: 'coachName',
       type: 'text',
       required: true,

@@ -75,6 +75,7 @@ export interface Config {
     routes: Route;
     contacts: Contact;
     history: History;
+    'competitive-team-members': CompetitiveTeamMember;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -90,6 +91,7 @@ export interface Config {
     routes: RoutesSelect<false> | RoutesSelect<true>;
     contacts: ContactsSelect<false> | ContactsSelect<true>;
     history: HistorySelect<false> | HistorySelect<true>;
+    'competitive-team-members': CompetitiveTeamMembersSelect<false> | CompetitiveTeamMembersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -331,6 +333,51 @@ export interface History {
   createdAt: string;
 }
 /**
+ * Competitive team roster profiles shown on /team when published.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "competitive-team-members".
+ */
+export interface CompetitiveTeamMember {
+  id: number;
+  /**
+   * When enabled, this member appears on the /team roster.
+   */
+  published?: boolean | null;
+  name: string;
+  /**
+   * Optional — site shows a placeholder circle when empty.
+   */
+  photo?: (number | null) | Media;
+  classYear: 'frosh' | 'soph' | 'junior' | 'senior' | 'grad';
+  /**
+   * Academic season label, e.g. 2025–26
+   */
+  season: string;
+  hometown?: string | null;
+  highSchool?: string | null;
+  /**
+   * Field of study
+   */
+  major?: string | null;
+  /**
+   * Primary events for the roster card (e.g. "800m, 5k")
+   */
+  mainEvents?: string | null;
+  eventInterests?: ('sprints' | 'jumps' | 'mid-distance' | 'distance' | 'long-distance' | 'uphill-trail')[] | null;
+  funFact?: string | null;
+  /**
+   * PRs, titles, and other achievements for the roster
+   */
+  highlights?: string | null;
+  /**
+   * Sort order within class year (lower = first)
+   */
+  order: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -385,6 +432,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'history';
         value: number | History;
+      } | null)
+    | ({
+        relationTo: 'competitive-team-members';
+        value: number | CompetitiveTeamMember;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -556,6 +607,27 @@ export interface HistorySelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "competitive-team-members_select".
+ */
+export interface CompetitiveTeamMembersSelect<T extends boolean = true> {
+  published?: T;
+  name?: T;
+  photo?: T;
+  classYear?: T;
+  season?: T;
+  hometown?: T;
+  highSchool?: T;
+  major?: T;
+  mainEvents?: T;
+  eventInterests?: T;
+  funFact?: T;
+  highlights?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -637,6 +709,10 @@ export interface Team {
   description: string;
   heroImage: number | Media;
   joinUrl: string;
+  /**
+   * Season label for the public roster on /team (must match member season values).
+   */
+  activeRosterSeason: string;
   coachName: string;
   coachBio: string;
   coachImage: number | Media;
@@ -685,6 +761,7 @@ export interface TeamSelect<T extends boolean = true> {
   description?: T;
   heroImage?: T;
   joinUrl?: T;
+  activeRosterSeason?: T;
   coachName?: T;
   coachBio?: T;
   coachImage?: T;
