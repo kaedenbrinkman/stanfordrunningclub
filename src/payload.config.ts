@@ -14,6 +14,7 @@ import { Records } from './collections/Records'
 import { Routes } from './collections/Routes'
 import { Contacts } from './collections/Contacts'
 import { History } from './collections/History'
+import { CompetitiveTeamMembers } from './collections/CompetitiveTeamMembers'
 import { About } from './globals/About'
 import { Home } from './globals/Home'
 import { Team } from './globals/Team'
@@ -28,7 +29,17 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Traditions, Schedule, Records, Routes, Contacts, History],
+  collections: [
+    Users,
+    Media,
+    Traditions,
+    Schedule,
+    Records,
+    Routes,
+    Contacts,
+    History,
+    CompetitiveTeamMembers,
+  ],
   globals: [About, Home, Team],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',

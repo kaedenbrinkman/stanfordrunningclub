@@ -2,19 +2,19 @@ import { getPayload } from 'payload'
 import React from 'react'
 import Image from 'next/image'
 import config from '@/payload.config'
-import type { Record as RecordType } from '@/payload-types'
+import RosterMemberCard from '@/components/custom/RosterMemberCard'
+import {
+  classYearOrder,
+  classYearSectionLabels,
+  groupMembersByClassYear,
+} from '@/lib/rosterGrouping'
+import { rosterPublicSelect } from '@/lib/rosterPublicSelect'
 
-export const revalidate = 60 // Revalidate page every 60 seconds (ISR)
+export const revalidate = 60
 
 export const metadata = {
   title: 'Stanford Running Club | The Team',
-  description: 'Meet the Stanford Running Club team and view our records',
-}
-
-interface GroupedRecords {
-  [category: string]: {
-    [distance: string]: RecordType[]
-  }
+  description: 'Meet the Stanford Running Club competitive team and coach',
 }
 
 export default async function TeamPage() {
@@ -26,43 +26,31 @@ export default async function TeamPage() {
     depth: 2,
   })
 
-  const recordsResult = await payload.find({
-    collection: 'records',
+  const activeRosterSeason = teamData.activeRosterSeason || '2025–26'
+
+  const rosterResult = await payload.find({
+    collection: 'competitive-team-members',
     depth: 1,
-    limit: 1000,
+    limit: 500,
     sort: 'order',
+    select: rosterPublicSelect,
+    where: {
+      and: [
+        { published: { equals: true } },
+        { season: { equals: activeRosterSeason } },
+      ],
+    },
   })
 
-  // Group records by category and distance
-  const groupedRecords: GroupedRecords = {}
-  recordsResult.docs.forEach((record) => {
-    if (!groupedRecords[record.category]) {
-      groupedRecords[record.category] = {}
-    }
-    if (!groupedRecords[record.category][record.distance]) {
-      groupedRecords[record.category][record.distance] = []
-    }
-    groupedRecords[record.category][record.distance].push(record)
-  })
+  const rosterByClass = groupMembersByClassYear(rosterResult.docs)
 
   const heroImageData = typeof teamData.heroImage === 'object' ? teamData.heroImage : null
   const coachImageData = typeof teamData.coachImage === 'object' ? teamData.coachImage : null
   const coachHeadshotData =
     typeof teamData.coachHeadshot === 'object' ? teamData.coachHeadshot : null
 
-  const categoryLabels: { [key: string]: string } = {
-    track: 'TRACK',
-    xc: 'CROSS COUNTRY',
-    road: 'ROAD',
-    field: 'FIELD',
-    misc: 'MISCELLANEOUS',
-  }
-
-  const categoryOrder = ['track', 'xc', 'road', 'field', 'misc']
-
   return (
     <div className="bg-background">
-      {/* Hero Section - Swiss Design: Bold Typography with Image */}
       <section className="max-w-7xl mx-auto px-4 py-16 md:py-24">
         <div className="max-w-4xl mx-auto mb-12">
           {heroImageData && heroImageData.url ? (
@@ -91,7 +79,6 @@ export default async function TeamPage() {
             {teamData.description}
           </p>
 
-          {/* CTA Button */}
           <a
             href={teamData.joinUrl}
             target="_blank"
@@ -103,11 +90,9 @@ export default async function TeamPage() {
         </div>
       </section>
 
-      {/* Coach Section - Asymmetric Grid Layout */}
       <section className="bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 py-16 md:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Coach Image - Hidden on mobile */}
             {coachImageData && coachImageData.url && (
               <div className="hidden lg:block relative w-full h-full min-h-[500px] overflow-hidden">
                 <Image
@@ -120,11 +105,8 @@ export default async function TeamPage() {
               </div>
             )}
 
-            {/* Coach Info */}
             <div className="flex flex-col items-start">
-              {/* Coach Badge and Headshot */}
               <div className="flex items-center gap-3 mb-4">
-                {/* Coach Headshot */}
                 {coachHeadshotData && coachHeadshotData.url && (
                   <div className="relative w-8 h-8 overflow-hidden rounded-full border-2 border-border flex-shrink-0">
                     <Image
@@ -137,7 +119,6 @@ export default async function TeamPage() {
                   </div>
                 )}
 
-                {/* Coach Badge */}
                 <div className="px-4 py-2 bg-foreground text-background text-xs font-bold uppercase tracking-widest">
                   COACH
                 </div>
@@ -156,74 +137,46 @@ export default async function TeamPage() {
         </div>
       </section>
 
-      {/* Records Section - Swiss Design: Structured Data Tables */}
       <section className="max-w-7xl mx-auto px-4 py-16 md:py-24">
         <div className="mb-12">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-foreground uppercase tracking-tight mb-3">
-            RECORDS
+            {activeRosterSeason} ROSTER
           </h2>
-          <div className="w-24 h-1 bg-primary" />
+          <div className="w-24 h-1 bg-primary mb-4" />
+          <p className="text-muted-foreground text-base md:text-lg max-w-2xl">
+            Competitive team members racing with SRC this season.
+          </p>
         </div>
 
-        <div className="flex flex-col gap-12">
-          {categoryOrder.map((category) => {
-            if (!groupedRecords[category]) return null
+        {rosterResult.docs.length === 0 ? (
+          <div className="border-2 border-border bg-card p-12 text-center">
+            <p className="text-sm uppercase tracking-wide font-semibold text-muted-foreground">
+              ROSTER COMING SOON
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-16">
+            {classYearOrder.map((yearKey) => {
+              const members = rosterByClass.get(yearKey) || []
+              if (members.length === 0) return null
 
-            return (
-              <div key={category} className="flex flex-col gap-4">
-                {/* Category Heading */}
-                <div className="mb-4">
+              return (
+                <div key={yearKey}>
                   <h3 className="text-2xl md:text-3xl font-black text-foreground uppercase tracking-tight mb-2">
-                    {categoryLabels[category]}
+                    {classYearSectionLabels[yearKey]}
                   </h3>
-                  <div className="w-16 h-1 bg-primary" />
-                </div>
+                  <div className="w-16 h-1 bg-primary mb-8" />
 
-                {/* Distance Groups */}
-                {Object.entries(groupedRecords[category]).map(([distance, records]) => (
-                  <div
-                    key={distance}
-                    className="border-2 border-border p-6 bg-card flex flex-col gap-4"
-                  >
-                    {/* Distance Heading */}
-                    <h4 className="text-lg font-black text-foreground uppercase tracking-tight">
-                      {distance}
-                    </h4>
-
-                    {/* Records */}
-                    {records.length === 0 ? (
-                      <p className="text-muted-foreground text-xs uppercase tracking-wide font-semibold">
-                        NO RECORDS YET
-                      </p>
-                    ) : (
-                      <div className="flex flex-col gap-3">
-                        {records.map((record) => (
-                          <div
-                            key={record.id}
-                            className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-6 border-t border-border pt-3 first:border-t-0 first:pt-0"
-                          >
-                            <p className="font-bold text-foreground lg:w-48 flex-shrink-0 text-sm uppercase tracking-wide">
-                              {record.name}
-                            </p>
-                            <p className="font-bold text-foreground lg:w-32 flex-shrink-0 text-sm">
-                              {record.time}
-                            </p>
-                            <p className="text-muted-foreground text-xs lg:w-32 flex-shrink-0 uppercase tracking-wide font-semibold">
-                              {record.date}
-                            </p>
-                            <p className="text-muted-foreground text-xs uppercase tracking-wide font-semibold">
-                              {record.location}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {members.map((member) => (
+                      <RosterMemberCard key={member.id} member={member} />
+                    ))}
                   </div>
-                ))}
-              </div>
-            )
-          })}
-        </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </section>
     </div>
   )
